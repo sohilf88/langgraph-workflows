@@ -42,7 +42,7 @@ def boundary_percentage(state:Initial_state):
     return {"boundary_ball_percentage":round(boundarysPercent,3)}
 
 def summary(state:Initial_state):
-    summary=f"this is summary total runs {state['runs']} with strike rate {state['strike_rate']}"
+    summary=f"this is summary total runs {state['runs']} with strike rate {state['strike_rate']}"#type:ignore
     state["summary"]=summary
     return {"summary":summary}
 # create graph
