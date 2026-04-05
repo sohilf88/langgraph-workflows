@@ -90,7 +90,7 @@ def thoughtFeedback(state:EssayEvaluationState):
 
 
 def avarageScoreFunction(state:EssayEvaluationState):
-    individualScores=state["individualScores"]
+    individualScores=state["individualScores"] #type:ignore
     # print(state)
     avarage=sum(individualScores)/len(individualScores)
     return {
