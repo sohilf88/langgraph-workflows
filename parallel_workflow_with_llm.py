@@ -5,14 +5,24 @@ from dotenv import load_dotenv
 from pydantic import BaseModel,Field
 from typing import TypedDict,NotRequired,Annotated,cast
 import operator
+from langsmith import traceable
+import os
 # load env file
 load_dotenv()
+
+os.environ["LANGCHAIN_PROJECT"]="LangGraph-Tracing"
 
 # create template
 
 # template=PromptTemplate(template="generate good feedback about given eassy {eassy}",input_variables=["eassy"])
 
-essay="""Artificial Intelligence Type-1 Narrow AI (weak AI): This is designed to perform a specific task with intelligence. It is termed as weak AI because it cannot perform beyond its limitations. It is trained to do a specific task. Some examples of Narrow AI are facial recognition (Siri in Apple phones), speech, and image recognition. IBM’s Watson supercomputer, self-driving cars, playing chess, and solving equations are also some of the examples of weak AI. General AI (AGI or strong AI): This type of system can handle almost all cognitive tasks as effectively as humans. Its key feature is the ability to think independently, similar to how humans do. Developing such systems is a long-term goal for many researchers. Super AI: Super AI refers to systems with intelligence that exceeds human capabilities, allowing them to perform any cognitive task better than humans. The defining traits of super AI include independent thinking, reasoning, problem-solving, judgment, planning, and communication. Creating super AI could become one of the most significant milestones in human history. Artificial Intelligence Type-2 Reactive Machines: These machines are the basic types of AI. Such AI systems focus only on current situations and react as per the best possible action. They do not store memories for future actions. IBM’s deep blue system and Google’s Alpha go are the examples of reactive machines. Limited Memory: These machines can store data or past memories for a short period of time. Examples are self-driving cars. They can store information to navigate the road, speed, and distance of nearby cars. Theory of Mind: These systems understand emotions, beliefs, and requirements like humans. These kinds of machines are still not invented and it’s a long-term goal for the researchers to create one. Self-Awareness: Self-awareness AI is the future of artificial intelligence. These machines can outsmart the humans. If these machines are invented then it can bring a revolution in human society. Conclusion Artificial Intelligence is set to spark a major transformation in human history. By enhancing human intelligence with AI, civilisation can thrive, provided that we ensure the technology remains advantageous."""
+essay="""The internet has transformed how humanity communicates, learns, and works, connecting billions of people across the globe in an instant. What began as a tool for sharing research among scientists has evolved into the backbone of modern life — powering commerce, education, entertainment, and social connection.
+
+Its benefits are immense. Information that once required a trip to the library is now available within seconds. Businesses reach customers worldwide without physical storefronts. Remote work, online education, and telemedicine have become possible, breaking down geographical barriers that once limited opportunity. Social media and messaging apps keep families and friends connected regardless of distance.
+
+Yet the internet also brings real challenges. Misinformation spreads as quickly as truth, and distinguishing reliable sources from unreliable ones has become a critical skill. Privacy concerns grow as personal data is collected and traded. Excessive screen time and social media use have been linked to anxiety, reduced attention spans, and a decline in face-to-face interaction. Cybercrime, from scams to data breaches, poses ongoing risks to individuals and institutions alike.
+
+Ultimately, the internet is a tool — its impact depends on how it is used. Used thoughtfully, it empowers education, innovation, and connection on a scale once unimaginable. Used carelessly, it can mislead, isolate, or harm. As society continues to integrate the internet deeper into daily life, cultivating digital literacy and healthy habits around its use will matter as much as the technology itself.."""
 # generate prompt 
 # prompt=template.invoke({"eassy":eassy})
 
@@ -57,6 +67,7 @@ class EssayEvaluationState(TypedDict):
 graph=StateGraph(EssayEvaluationState)
 
 # grammer feedback node function
+@traceable(name="grammer feedback")
 def grammerFeedback(state:EssayEvaluationState):
     essay=state["essay"]
     template=PromptTemplate(template="generate good feedback about given eassy's grammer and mark score between 1 to 10 {essay}",input_variables=["essay"])
@@ -67,7 +78,7 @@ def grammerFeedback(state:EssayEvaluationState):
         "grammerFeedback":response.feedback,
         "individualScores":[response.score]
     }
-
+@traceable(name="Analysis Feedback")
 def analysisFeedback(state:EssayEvaluationState):
      essay=state["essay"]
      template=PromptTemplate(template="perform analysis and share your feedback on input {essay} and mark between 1 to 10",input_variables=["essay"])
@@ -77,7 +88,7 @@ def analysisFeedback(state:EssayEvaluationState):
          "analysisFeedback":response.feedback,
          "individualScores":[response.score]
      }
-
+@traceable(name="Thought Feedback")
 def thoughtFeedback(state:EssayEvaluationState):
      essay=state["essay"]
      template=PromptTemplate(template="please share your thoughts of depth on given essay -{essay} and mark between 1 to 10 ",input_variables=["essay"])
@@ -88,7 +99,7 @@ def thoughtFeedback(state:EssayEvaluationState):
          "individualScores":[response.score]
      }
 
-
+@traceable(name="individualScores")
 def avarageScoreFunction(state:EssayEvaluationState):
     individualScores=state["individualScores"] #type:ignore
     # print(state)
@@ -96,7 +107,7 @@ def avarageScoreFunction(state:EssayEvaluationState):
     return {
         "avarageScore":avarage
     }
-
+@traceable(name="final feedback")
 def finalFeedback(state:EssayEvaluationState):
    
      template = PromptTemplate(
@@ -155,5 +166,25 @@ parallalWorkflow=graph.compile()
 
 result=parallalWorkflow.invoke({"essay":essay})
 
-print(result)
-# EssayWorkflowState
+# print(result)
+print("************** grammer feedback ***********************\n")
+print(result["grammerFeedback"])
+
+print("**************** analysis Feedback ********************\n")
+print(result["analysisFeedback"])
+print("**************** thought Feedback **********************\n")
+print(result["thoughtFeedback"])
+
+print("****************  Scores ***********\n")
+print("individual  Scores\n")
+print(result["individualScores"])
+print("Avarage  Scores\n")
+print(result["avarageScore"])
+
+print("##################### FINAL Feedback #####################")
+
+print(result["finalFeedback"])
+print("overall  Scores\n")
+print(result["avarageScore"])
+
+ 
